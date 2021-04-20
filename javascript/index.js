@@ -7,6 +7,10 @@ const deviceFilters = [{ }];
 //const deviceFilters = [{ usagePage: 0x0b}];
 //const deviceFilters = [{ usagePage: 0x0b, usage: 0x20 }];
 
+function timestamp(){
+	var today = new Date();
+	return today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+}
 
 function handleConnectedDevice(e) {
   console.log("Device connected: " + e.device.productName);
@@ -17,12 +21,13 @@ function handleDisconnectedDevice(e) {
 }
 
 function handleInputReport(e) {
-  console.log(e.device.productName + ": got input report " + e.reportId);
+  console.log(timestamp() + " " + e.device.productName + ": got input report " + e.reportId);
   console.log(new Uint8Array(e.data.buffer));
 }
 
 
 function listCollections(device){
+	console.log("Listing " + device.collections.length + " collections for " + device.vendorId + ":" + device.productId + " (" + device.productName + ")");
 	for (let collection of device.collections) {
 	  // A HID collection includes usage, usage page, reports, and subcollections.
 	  console.log(`Usage: ` + "0x" + collection.usage.toString(16));
@@ -73,11 +78,17 @@ consentButton.addEventListener('click', async () => {
     
 	device = devices[0];
 
-	listCollections(device);
+	for (const device of devices) {
+		listCollections(device);
 
-	device.opened || await device.open();
-
-	device.addEventListener('inputreport', handleInputReport);
+		try{
+			device.opened || await device.open();
+			device.addEventListener('inputreport', handleInputReport);
+		} catch (error) {
+			console.warn('No device access granted', error);
+			continue;
+	  	}
+	}
   } catch (error) {
     console.warn('No device access granted', error);
     return;
